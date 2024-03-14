@@ -30,7 +30,7 @@ const localStrategy = new LocalStrategy(
 const jwtStrategy = new JWTStrategy(
   {
     jwtFromRequest: fromAuthHeaderAsBearerToken(),
-    secretOrKey: config.secret_key,
+    secretOrKey: config.token.secret_key,
   },
   async (payload, done) => {
     try {

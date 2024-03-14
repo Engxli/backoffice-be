@@ -17,6 +17,15 @@ class User {
     ]);
     return rows[0];
   }
+
+  static async create(userInfo) {
+    const { name, email, password } = userInfo;
+    const [rows] = await pool.query(
+      "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
+      [name, email, password]
+    );
+    return rows.insertId;
+  }
 }
 
 module.exports = User;

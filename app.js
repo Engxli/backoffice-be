@@ -20,6 +20,7 @@ passport.use("local", localStrategy);
 passport.use("jwt", jwtStrategy);
 
 // routes
+app.use("/api/auth", require("./apis/auth/routes"));
 
 // middlewares after routes
 app.use(errorHandler);
