@@ -21,6 +21,7 @@ passport.use("jwt", jwtStrategy);
 
 // routes
 app.use("/api/auth", require("./apis/auth/routes"));
+app.use("/api/customers", require("./apis/customer/routes"));
 
 // middlewares after routes
 app.use(errorHandler);
