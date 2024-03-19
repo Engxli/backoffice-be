@@ -5,6 +5,7 @@ const {
   getCustomerById,
   createCustomer,
   updateCustomer,
+  deleteCustomer,
 } = require("./controller");
 const router = express.Router();
 
@@ -15,5 +16,5 @@ router.get("/", jwt, getAllCustomers);
 router.get("/:id", jwt, getCustomerById);
 router.post("/", jwt, createCustomer);
 router.put("/:id", jwt, updateCustomer);
-
+router.delete("/:id", jwt, deleteCustomer);
 module.exports = router;

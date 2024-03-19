@@ -76,6 +76,16 @@ class Customer {
     const [rows] = await pool.query(sql, [...values, customerId]);
     return rows.affectedRows;
   }
+
+  static async remove(id) {
+    const [rows] = await pool.query("DELETE FROM customers WHERE id = ?", [id]);
+    if (rows.affectedRows === 0) {
+      const error = new Error("Customer with this id is not found!");
+      error.status = 404;
+      throw error;
+    }
+    return rows.affectedRows;
+  }
 }
 
 module.exports = Customer;

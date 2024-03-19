@@ -5,7 +5,7 @@ const getAllCustomers = async (req, res, next) => {
     const { page, pageSize, sortBy, sortOrder } = req.query;
 
     const customers = await Customer.findAll(page, pageSize, sortBy, sortOrder);
-    res.status(200).json(customers);
+    return res.status(200).json(customers);
   } catch (error) {
     next(error);
   }
@@ -14,7 +14,7 @@ const getAllCustomers = async (req, res, next) => {
 const getCustomerById = async (req, res, next) => {
   try {
     const customer = await Customer.findById(req.params.id);
-    res.status(200).json(customer);
+    return res.status(200).json(customer);
   } catch (error) {
     next(error);
   }
@@ -23,7 +23,7 @@ const getCustomerById = async (req, res, next) => {
 const createCustomer = async (req, res, next) => {
   try {
     const customerId = await Customer.create(req.body);
-    res.status(201).json(customerId);
+    return res.status(201).json(customerId);
   } catch (error) {
     next(error);
   }
@@ -32,15 +32,24 @@ const createCustomer = async (req, res, next) => {
 const updateCustomer = async (req, res, next) => {
   try {
     const affectedRows = await Customer.update(req.params.id, req.body);
-    res.status(200).json(affectedRows);
+    return res.status(200).json(affectedRows);
   } catch (error) {
     next(error);
   }
 };
 
+const deleteCustomer = async (req, res, next) => {
+  try {
+    const affectedRows = await Customer.remove(req.params.id);
+    return res.status(200).json(affectedRows);
+  } catch (error) {
+    next(error);
+  }
+};
 module.exports = {
   getAllCustomers,
   getCustomerById,
   createCustomer,
   updateCustomer,
+  deleteCustomer,
 };
