@@ -2,7 +2,9 @@ const Customer = require("../../model/Customer");
 
 const getAllCustomers = async (req, res, next) => {
   try {
-    const customers = await Customer.findAll();
+    const { page, pageSize, sortBy, sortOrder } = req.query;
+
+    const customers = await Customer.findAll(page, pageSize, sortBy, sortOrder);
     res.status(200).json(customers);
   } catch (error) {
     next(error);
