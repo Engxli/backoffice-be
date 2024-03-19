@@ -17,4 +17,5 @@ router.get("/:id", jwt, getCustomerById);
 router.post("/", jwt, createCustomer);
 router.put("/:id", jwt, updateCustomer);
 router.delete("/:id", jwt, deleteCustomer);
+
 module.exports = router;

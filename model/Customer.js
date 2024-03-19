@@ -3,28 +3,61 @@ const { pool } = require("../database");
 class Customer {
   static async findAll(
     page = 1,
-    pageSize = 25,
+    pageSize = 5,
     sortBy = "id",
-    sortOrder = "ASC"
+    sortOrder = "ASC",
+    name = null, // Optional parameter for searching by name
+    number = null // Optional parameter for searching by number
   ) {
     page = +page;
     pageSize = +pageSize;
-    const validSortColumns = ["id", "name", "age", "dateOfBirth", "gender"];
+    const validSortColumns = [
+      "id",
+      "name",
+      "age",
+      "dateOfBirth",
+      "gender",
+      "number",
+    ];
     const validSortOrders = ["ASC", "DESC"];
 
     // Validate sortBy and sortOrder
     sortBy = validSortColumns.includes(sortBy) ? sortBy : "id";
     sortOrder = validSortOrders.includes(sortOrder) ? sortOrder : "ASC";
 
-    const offset = (+page - 1) * +pageSize;
+    const offset = (page - 1) * pageSize;
 
-    // Query for fetching paginated rows
-    const queryRows = `SELECT * FROM customers ORDER BY ${sortBy} ${sortOrder} LIMIT ?, ?`;
-    const [rows] = await pool.query(queryRows, [offset, pageSize]);
+    // Start building the query based on provided filters
+    let queryCondition = "";
+    let queryParameters = [];
 
-    // Query for counting total items
-    const queryTotal = "SELECT COUNT(*) AS totalItems FROM customers";
-    const [[{ totalItems }]] = await pool.query(queryTotal);
+    // If name or number is provided, adjust the query to include a WHERE clause
+    if (name || number) {
+      console.log("yay filtering by name or number", name, number);
+      let conditions = [];
+      if (name) {
+        conditions.push("name LIKE ?");
+        queryParameters.push(`%${name}%`);
+      }
+      if (number) {
+        conditions.push("number LIKE ?");
+        queryParameters.push(`%${number}%`);
+      }
+      queryCondition = `WHERE ${conditions.join(" OR ")}`;
+    }
+
+    const queryRows = `SELECT * FROM customers ${queryCondition} ORDER BY ${sortBy} ${sortOrder} LIMIT ?, ?`;
+    // Adding the offset and pageSize to the query parameters
+    queryParameters.push(offset, pageSize);
+
+    const [rows] = await pool.query(queryRows, queryParameters);
+
+    // For counting total items, consider the same conditions
+    const queryTotal = `SELECT COUNT(*) AS totalItems FROM customers ${queryCondition}`;
+    const [[{ totalItems }]] = await pool.query(
+      queryTotal,
+      queryParameters.slice(0, -2)
+    ); // Exclude limit params for total count
 
     // Return both the paginated data and the total item count
     return {
@@ -46,18 +79,23 @@ class Customer {
   }
 
   static async create(customerInfo) {
-    const { name, age, dateOfBirth, gender } = customerInfo;
+    const { name, age, dateOfBirth, gender, number } = customerInfo;
+    if (isNaN(number)) {
+      const error = new Error("Only numbers are allowed in the number field!");
+      error.status = 400;
+      throw error;
+    }
     const [rows] = await pool.query(
-      "INSERT INTO customers (name, age, dateOfBirth, gender) VALUES (?, ?, ?, ?)",
-      [name, age, dateOfBirth, gender]
+      "INSERT INTO customers (name, age, dateOfBirth, gender, number) VALUES (?, ?, ?, ?, ?)",
+      [name, age, dateOfBirth, gender, number]
     );
     return rows.insertId;
   }
 
   static async update(customerId, customerInfo) {
-    const { name, age, dateOfBirth, gender } = customerInfo;
+    const { name, age, dateOfBirth, gender, number } = customerInfo;
 
-    const fieldsToUpdate = { name, age, dateOfBirth, gender };
+    const fieldsToUpdate = { name, age, dateOfBirth, gender, number };
     const setClause = [];
     const values = [];
     for (const [key, value] of Object.entries(fieldsToUpdate)) {
@@ -74,6 +112,11 @@ class Customer {
     const sql = `UPDATE customers SET ${setClause.join(", ")} WHERE id = ?`;
 
     const [rows] = await pool.query(sql, [...values, customerId]);
+    if (rows.affectedRows === 0) {
+      const error = new Error("Customer with this id is not found!");
+      error.status = 404;
+      throw error;
+    }
     return rows.affectedRows;
   }
 
