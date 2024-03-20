@@ -6,8 +6,12 @@ class Customer {
     pageSize = 5,
     sortBy = "id",
     sortOrder = "ASC",
-    name = null, // Optional parameter for searching by name
-    number = null // Optional parameter for searching by number
+    name = null,
+    number = null,
+    ageFrom = null,
+    ageTo = null,
+    dobFrom = null,
+    dobTo = null
   ) {
     page = +page;
     pageSize = +pageSize;
@@ -26,40 +30,57 @@ class Customer {
     sortOrder = validSortOrders.includes(sortOrder) ? sortOrder : "ASC";
 
     const offset = (page - 1) * pageSize;
-
-    // Start building the query based on provided filters
-    let queryCondition = "";
     let queryParameters = [];
+    let conditions = [];
 
-    // If name or number is provided, adjust the query to include a WHERE clause
+    // Handle name or number with OR condition
     if (name || number) {
-      console.log("yay filtering by name or number", name, number);
-      let conditions = [];
+      let orConditions = [];
       if (name) {
-        conditions.push("name LIKE ?");
+        orConditions.push("name LIKE ?");
         queryParameters.push(`%${name}%`);
       }
       if (number) {
-        conditions.push("number LIKE ?");
+        orConditions.push("number LIKE ?");
         queryParameters.push(`%${number}%`);
       }
-      queryCondition = `WHERE ${conditions.join(" OR ")}`;
+      conditions.push(`(${orConditions.join(" OR ")})`);
     }
 
-    const queryRows = `SELECT * FROM customers ${queryCondition} ORDER BY ${sortBy} ${sortOrder} LIMIT ?, ?`;
-    // Adding the offset and pageSize to the query parameters
-    queryParameters.push(offset, pageSize);
+    // Handle age range with AND condition
+    if (ageFrom) {
+      conditions.push("age >= ?");
+      queryParameters.push(ageFrom);
+    }
+    if (ageTo) {
+      conditions.push("age <= ?");
+      queryParameters.push(ageTo);
+    }
 
+    // Handle date of birth range with AND condition
+    if (dobFrom) {
+      conditions.push("dateOfBirth <= ?");
+      queryParameters.push(dobFrom);
+    }
+    if (dobTo) {
+      conditions.push("dateOfBirth >= ?");
+      queryParameters.push(dobTo);
+    }
+
+    let queryCondition = conditions.length
+      ? `WHERE ${conditions.join(" AND ")}`
+      : "";
+
+    const queryRows = `SELECT * FROM customers ${queryCondition} ORDER BY ${sortBy} ${sortOrder} LIMIT ?, ?`;
+    queryParameters.push(offset, pageSize);
+    console.log(queryRows);
     const [rows] = await pool.query(queryRows, queryParameters);
 
-    // For counting total items, consider the same conditions
+    // For counting total items, consider the same conditions but without pagination parameters
     const queryTotal = `SELECT COUNT(*) AS totalItems FROM customers ${queryCondition}`;
-    const [[{ totalItems }]] = await pool.query(
-      queryTotal,
-      queryParameters.slice(0, -2)
-    ); // Exclude limit params for total count
+    const totalParameters = queryParameters.slice(0, -2); // Exclude the pagination parameters for the total count
+    const [[{ totalItems }]] = await pool.query(queryTotal, totalParameters);
 
-    // Return both the paginated data and the total item count
     return {
       data: rows,
       totalItems,
